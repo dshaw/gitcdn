@@ -9,6 +9,7 @@
  */
 
 var path = require('path')
+  , exec = require('child_process').exec
   , connect = require('connect')
   , pushover = require('pushover')
 
@@ -27,15 +28,16 @@ function GitCDN (options) {
   options || (options = {})
   this.options = options
 
-  this.dir = options.dir || __dirname + '/repos'
+  this.repoDir = options.repoDir || __dirname + '/repos'
+  this.fileDir = options.fileDir || __dirname + '/files'
   this.pushPort = options.pushPort || 7000
-  this.hostPort = options.pushPortr || 9000
+  this.hostPort = options.hostPort || 9000
 
   if (this.pushPort === this.hostPort) {
     throw new Error('Git push and server are set to the same port.')
   }
 
-  this.repos;
+  this.pusher;
   this.server;
 
   this.initGit()
@@ -48,17 +50,30 @@ function GitCDN (options) {
 
 GitCDN.prototype.initGit = function () {
   var self = this
-    , repos = this.repos
 
-  repos = pushover(this.dir)
+  this.pusher = pushover(this.repoDir)
 
-  repos.on('push', function (repo) {
+  this.pusher.on('push', function (repo) {
     console.log('received a push to ' + repo);
+    exec('git clone ' + path.join(self.repoDir, repo + '.git'), { cwd: self.fileDir  }, function () {
+      console.log(arguments);
+//                if (name === 'end') {
+//                    spawner('git',
+//                        [ 'checkout', commit ],
+//                        function (name) {
+//                            if (name === 'end') {
+//                                spawner(command[0], command.slice(1), emit);
+//                            }
+//                        },
+//                        { cwd : dir }
+//                    );
+//                }
+    })
   })
 
-  repos.listen(this.pushPort)
+  this.pusher.listen(this.pushPort)
 
-  repos.on('listening', function () {
+  this.pusher.on('listening', function () {
     console.log('listening on :%d', self.pushPort);
   })
 }
@@ -68,13 +83,13 @@ GitCDN.prototype.initGit = function () {
  */
 
 GitCDN.prototype.initServer = function () {
-  var server = this.server
+  var self = this
 
-  server = connect.createServer(connect.static(path.join(this.dir)))
+  this.server = connect.createServer(connect.static(path.join(this.repoDir)))
 
-  server.listen(this.hostPort)
+  this.server.listen(this.hostPort)
 
-  server.on('listening', function () {
-    console.log('listening on :', server.address());
+  this.server.on('listening', function () {
+    console.log('listening on :', self.server.address());
   })
 }
