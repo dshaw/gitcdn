@@ -1,1 +1,1 @@
-var cdn = require('..')();
+var cdn = require('..')({ repoDir: __dirname + '/repos' });
