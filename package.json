@@ -17,6 +17,8 @@
     }
   , "dependencies" : {
         "connect" : ">= 1.0.1"
+      , "mkdirp" : ""
+      , "procstreams" : ""
       , "pushover" : ">= 0.1.1"
   }
   , "licenses": [{
