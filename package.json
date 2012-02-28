@@ -1,6 +1,6 @@
 {
     "name": "gitcdn"
-  , "version": "0.1.0"
+  , "version": "0.1.1"
   , "description": "Git push CDN"
   , "author" : {
         "name" : "Daniel D. Shaw"
