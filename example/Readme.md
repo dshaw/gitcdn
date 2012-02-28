@@ -1,3 +1,3 @@
 # Usage
 
-push http://localhost:7000/gcdn master
+push http://localhost:8000/gcdn master
