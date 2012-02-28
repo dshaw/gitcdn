@@ -66,7 +66,7 @@ GitCDN.prototype.initGit = function () {
     var repopath = path.join(this.filedir, repo)
     path.exists(repopath, function (exists) {
       if (!exists) {
-        procstream('git clone http://localhost:' + self.pushPort + '/' + repo, { cwd: self.filedir  })
+        procstream('git clone http://localhost:' + self.pushport + '/' + repo, { cwd: self.filedir  })
       } else {
         procstream('git pull', { cwd: repopath  })
       }
