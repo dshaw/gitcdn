@@ -10,8 +10,12 @@
 
 var path = require('path')
   , exec = require('child_process').exec
+  , util = require('util')
   , connect = require('connect')
+  , mkdirp = require('mkdirp')
+  , procstream = require('procstreams')
   , pushover = require('pushover')
+  , EventEmitter = require('events').EventEmitter
 
 /**
  * Exports
@@ -27,22 +31,25 @@ function GitCDN (options) {
   if (!(this instanceof GitCDN)) return new GitCDN(options)
   options || (options = {})
   this.options = options
+  this.basedir = options.basedir || process.cwd()
+  this.repodir = options.repodir || this.basedir + '/repos'
+  this.filedir = options.filedir || this.basedir + '/files'
+  this.pushport = options.pushport || 8000
+  this.hostport = options.hostport || 9000
 
-  this.repoDir = options.repoDir || __dirname + '/repos'
-  this.fileDir = options.fileDir || __dirname + '/files'
-  this.pushPort = options.pushPort || 7000
-  this.hostPort = options.hostPort || 9000
-
-  if (this.pushPort === this.hostPort) {
+  if (this.pushport === this.hostport) {
     throw new Error('Git push and server are set to the same port.')
   }
 
-  this.pusher;
-  this.server;
+  this.pusher = null;
+  this.server = null;
 
   this.initGit()
   this.initServer()
 }
+
+util.inherits(GitCDN, EventEmitter)
+
 
 /**
  * Initialize Git Push Server
@@ -51,31 +58,26 @@ function GitCDN (options) {
 GitCDN.prototype.initGit = function () {
   var self = this
 
-  this.pusher = pushover(this.repoDir)
+  mkdirp(this.filedir)
+  this.pusher = pushover(this.repodir)
 
   this.pusher.on('push', function (repo) {
-    console.log('received a push to ' + repo);
-    exec('git clone ' + path.join(self.repoDir, repo + '.git'), { cwd: self.fileDir  }, function () {
-      console.log(arguments);
-//                if (name === 'end') {
-//                    spawner('git',
-//                        [ 'checkout', commit ],
-//                        function (name) {
-//                            if (name === 'end') {
-//                                spawner(command[0], command.slice(1), emit);
-//                            }
-//                        },
-//                        { cwd : dir }
-//                    );
-//                }
+    self.emit('push', repo)
+    console.log('received a push to ' + repo)
+    path.exists(path.join(self.filedir, repo), function (exists) {
+      if (!exists) {
+        procstream('git clone http://localhost:' + self.pushPort + '/' + repo, { cwd: self.filedir  })
+      } else {
+        procstream('git pull', { cwd: self.filedir  })
+      }
     })
   })
 
-  this.pusher.listen(this.pushPort)
-
   this.pusher.on('listening', function () {
-    console.log('listening on :%d', self.pushPort);
+    console.log('listening on :', self.pushport);
   })
+
+  this.pusher.listen(this.pushport)
 }
 
 /**
@@ -85,11 +87,11 @@ GitCDN.prototype.initGit = function () {
 GitCDN.prototype.initServer = function () {
   var self = this
 
-  this.server = connect.createServer(connect.static(path.join(this.repoDir)))
-
-  this.server.listen(this.hostPort)
+  this.server = connect.createServer(connect.static(this.filedir))
+  this.server.listen(this.hostport)
 
   this.server.on('listening', function () {
-    console.log('listening on :', self.server.address());
+    console.log('listening on :', self.server.address())
+    console.log('hosting files in:', self.filedir)
   })
 }
