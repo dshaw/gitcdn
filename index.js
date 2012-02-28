@@ -9,7 +9,6 @@
  */
 
 var path = require('path')
-  , exec = require('child_process').exec
   , util = require('util')
   , connect = require('connect')
   , mkdirp = require('mkdirp')
